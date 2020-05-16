@@ -90,57 +90,60 @@ def main(args):
 	frame_count = 0
 	for ret, frame in inputFeeder.next_batch():
 		if not ret:
+			print('Stream finished.')
 			break
 		frame_count+=1
 		
-		# if frame_count%5==0:
-			# cv2.imshow('video',cv2.resize(frame,(500,500)))
-			# key = cv2.waitKey(60)
+		# cv2.imshow('video',frame)
+		# key = cv2.waitKey(60)
 		
 		face_coords = fdm.predict(frame)
 		if len(face_coords)==0:
 			logger.error("Unable to detect the face.")
-			if cv2.waitKey==27:
-				break
 			continue
 		
 		face_coord = face_coords[0]
-		face = frame[face_coord[0]:face_coord[2], face_coord[1]:face_coord[3]]
+		# print(face_coords)
+		face = frame[face_coord[1]:face_coord[3], face_coord[0]:face_coord[2]]
 
 		hp_out = hpem.predict(face)
 		
 		left_eye, right_eye, eye_coords = fldm.predict(face)
-		
+		if len(eye_coords[0])==0 or len(eye_coords[1])==0:
+			logger.error("Unable to identify the eyes.")
+			continue
+
 		new_mouse_coord, gaze_vector = gem.predict(left_eye, right_eye, hp_out)
+		if new_mouse_coord==(-1,-1):
+			logger.error("Couldn't identify either one or both eyes. Please align")
+			continue
 		
 		previewFlags = args.previewFlags
 		if (not len(previewFlags)==0):
 			preview_frame = frame
 			if 'fd' in previewFlags:
-				#cv2.rectangle(preview_frame, (face_coords[0], face_coords[1]), (face_coords[2], face_coords[3]), (255,0,0), 3)
-				preview_frame = face
+				cv2.rectangle(preview_frame, (face_coord[0], face_coord[1]), (face_coord[2], face_coord[3]), (255,0,0), 3)
+				# preview_frame = face
 			if 'fld' in previewFlags:
+				# preview_frame = face
 				cv2.rectangle(face, (eye_coords[0][0]-10, eye_coords[0][2]-10), (eye_coords[0][1]+10, eye_coords[0][3]+10), (0,255,0), 3)
 				cv2.rectangle(face, (eye_coords[1][0]-10, eye_coords[1][2]-10), (eye_coords[1][1]+10, eye_coords[1][3]+10), (0,255,0), 3)
-				#preview_frame[face_coords[1]:face_coords[3], face_coords[0]:face_coords[2]] = face
+				preview_frame[face_coord[1]:face_coord[3], face_coord[0]:face_coord[2]] = face
 			if 'hp' in previewFlags:
-				cv2.putText(preview_frame, "Pose Angles: yaw:{:.2f} | pitch:{:.2f} | roll:{:.2f}".format(hp_out[0],hp_out[1],hp_out[2]), (10, 20), cv2.FONT_HERSHEY_COMPLEX, 0.25, (0, 255, 0), 1)
+				cv2.putText(preview_frame, "Pose Angles: yaw:{:.2f} | pitch:{:.2f} | roll:{:.2f}".format(hp_out[0],hp_out[1],hp_out[2]), (25, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 2)
 			if 'ge' in previewFlags:
-				x, y, w = int(gaze_vector[0]*12), int(gaze_vector[1]*12), 160
-				le =cv2.line(left_eye.copy(), (x-w, y-w), (x+w, y+w), (255,0,255), 2)
-				cv2.line(le, (x-w, y+w), (x+w, y-w), (255,0,255), 2)
-				re = cv2.line(right_eye.copy(), (x-w, y-w), (x+w, y+w), (255,0,255), 2)
-				cv2.line(re, (x-w, y+w), (x+w, y-w), (255,0,255), 2)
-				# face[eye_coords[0][2]:eye_coords[0][3],eye_coords[0][0]:eye_coords[0][1]] = le
-				# face[eye_coords[1][2]:eye_coords[1][3],eye_coords[1][0]:eye_coords[1][1]] = re
-				#preview_frame[face_coords[1]:face_coords[3], face_coords[0]:face_coords[2]] = face
+				x, y = face_coord[0]+eye_coords[0][0]-10+int(gaze_vector[0]*1000), face_coord[1]+eye_coords[0][3]-10+int(gaze_vector[1]*1000)
+				lstart = (face_coord[0]+eye_coords[0][0]-10, face_coord[1]+eye_coords[0][3]+10)
+				rstart = (face_coord[0]+eye_coords[1][0]-10, face_coord[1]+eye_coords[1][3]+10)
+				cv2.line(preview_frame, lstart, (x,y), (0,0,255), 2)
+				cv2.line(preview_frame, rstart, (x,y), (0,0,255), 2)
 				
-			cv2.imshow("visualization",cv2.resize(preview_frame,(500,500)))
+			cv2.imshow("visualization",cv2.resize(preview_frame,(600,500)))
+			if cv2.waitKey(60)==27:
+				break
 		
 		if frame_count%5==0:
 			controller.move(new_mouse_coord[0],new_mouse_coord[1])  
-		if cv2.waitKey==27:
-			break
 	logger.error("VideoStream ended...")
 	cv2.destroyAllWindows()
 	inputFeeder.close()

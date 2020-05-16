@@ -35,8 +35,10 @@ class InputFeeder:
         If input_type is 'image', then it returns the same image.
         '''
         while True:
-            for _ in range(10):
-                ret, frame=self.cap.read()
+            # for _ in range(10):
+            ret, frame=self.cap.read()
+            if self.input_type=='cam':
+                frame = cv2.flip(frame, 1)
             yield ret, frame
 
 

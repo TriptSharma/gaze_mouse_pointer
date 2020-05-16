@@ -41,13 +41,18 @@ class FacialLandmarkDetectionModel:
 		coords = coords * np.array([w,h,w,h])
 		coords = coords.astype(np.int32)
 
-		size = 10
+		size = 20
+		# [xmin, xmax, ymin, ymax] format of eye bounding boxes
 		leye_bb = [coords[0]-size, coords[0]+size, coords[1]-size, coords[1]+size]
 		reye_bb = [coords[2]-size, coords[2]+size, coords[3]-size, coords[3]+size]
-
+		
 		leye = image[leye_bb[0]:leye_bb[1], leye_bb[2]:leye_bb[3]]
 		reye = image[reye_bb[0]:reye_bb[1], reye_bb[2]:reye_bb[3]]
 
+		# cv2.rectangle(image, (leye_bb[0], leye_bb[2]), (leye_bb[1], leye_bb[3]), (255,0,0), 1)
+		# cv2.rectangle(image, (reye_bb[0], reye_bb[2]), (reye_bb[1], reye_bb[3]), (255,0,0), 1)
+		# cv2.imshow('eye', image)
+		# cv2.waitKey(60)
 		return leye, reye, [leye_bb, reye_bb]
 
 	def check_model(self):

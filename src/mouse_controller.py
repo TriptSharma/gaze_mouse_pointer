@@ -18,4 +18,4 @@ class MouseController:
         self.speed=speed_dict[speed]
 
     def move(self, x, y):
-        pyautogui.moveRel(x*self.precision, -1*y*self.precision, duration=self.speed)
+        pyautogui.moveRel(x*self.precision, y*self.precision, duration=self.speed)

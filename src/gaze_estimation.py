@@ -36,6 +36,9 @@ class GazeEstimationModel:
 		'''
 		pp_leye = self.preprocess_input(leye)
 		pp_reye = self.preprocess_input(reye)
+
+		if pp_leye is None or pp_reye is None:
+			return (-1, -1), -1
 		input_d = {'head_pose_angles':head_pose, 'left_eye_image':pp_leye, 'right_eye_image':pp_reye}
 		outputs = self.ex.infer(input_d)
 		(pos_x, pos_y), gaze_vec = self.preprocess_output(outputs, head_pose)
@@ -48,23 +51,26 @@ class GazeEstimationModel:
 		'''
 		Preprocess eye images to reshape'em to [1x3x60x60].
 		'''
-		pp = cv2.resize(image,(self.input_shape[3],self.input_shape[2]))
-		pp = pp.transpose(2,0,1)
-		pp = pp.reshape(1, *pp.shape)
-		return pp
+		if image.size:
+			pp = cv2.resize(image,(self.input_shape[3],self.input_shape[2]))
+			pp = pp.transpose(2,0,1)
+			pp = pp.reshape(1, *pp.shape)
+			return pp
+		else:
+			return None
 
 	def preprocess_output(self, outputs, head_pose):
 		'''
 		Get the gaze vector and correct it using the roll values of head position
 		'''
-		print(outputs)
+		# print(outputs)
 		gaze_vector = outputs[self.output_name[0]].tolist()[0]
-		rollValue = head_pose[2]      #angle_r_fc output from HeadPoseEstimation model
-		cosValue = math.cos(rollValue * math.pi / 180.0)
-		sinValue = math.sin(rollValue * math.pi / 180.0)
+		# rollValue = head_pose[2]      #angle_r_fc output from HeadPoseEstimation model
+		# cosValue = math.cos(rollValue * math.pi / 180.0)
+		# sinValue = math.sin(rollValue * math.pi / 180.0)
 		
-		x = gaze_vector[0] * cosValue + gaze_vector[1] * sinValue
-		y = -gaze_vector[0] *  sinValue+ gaze_vector[1] * cosValue
+		# x = gaze_vector[0] * cosValue + gaze_vector[1] * sinValue
+		# y = gaze_vector[0] *  sinValue+ gaze_vector[1] * cosValue
 
-		# x, y = gaze_vector[0], gaze_vector[1]
+		x, y = gaze_vector[0], gaze_vector[1]
 		return (x,y), gaze_vector
